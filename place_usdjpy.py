@@ -41,7 +41,8 @@ def main():
     buy_trig = lo - BUF * atr
     stop_d = MULT * atr
     tp_d = TP * stop_d
-    risk_usd = float(L.os.environ.get("RISK_USD", "100"))
+    account = float(L.os.environ.get("ACCOUNT_SIZE", "10000"))
+    risk_usd = account * float(L.os.environ.get("RISK_PCT", "1.0")) / 100.0
     price_mid = (hi + lo) / 2
     units = round(risk_usd * price_mid / stop_d, 2)   # JPY quote convention (per place_orders.py)
 

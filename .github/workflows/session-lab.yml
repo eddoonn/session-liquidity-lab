@@ -1,0 +1,65 @@
+name: session-liquidity-lab
+
+on:
+  schedule:
+    - cron: '5 13 * * 1-4'      # place GOLD NY-Judas (after London ref closes)
+    - cron: '5 14,15,16,17,18 * * 1-4'  # hourly BE/time management
+    - cron: '5 19 * * 1-4'      # final flat pass GOLD
+    - cron: '5 22 * * 1-4'      # place USDJPY Asia-NY (after NY-late ref closes)
+    - cron: '5 9 * * 2-5'       # USDJPY morning flat
+    - cron: '30 10 * * 2-6'     # reconcile fills
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which script to run'
+        required: true
+        default: 'place_nyjudas'
+        type: choice
+        options: [place_nyjudas, manage_nyjudas, place_usdjpy, end_usdjpy, reconcile]
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Resolve job
+        id: j
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "script=${{ github.event.inputs.job }}.py" >> $GITHUB_OUTPUT
+          else
+            case "${{ github.event.schedule }}" in
+              "5 13 * * 1-4")   echo "script=place_nyjudas.py" >> $GITHUB_OUTPUT ;;
+              "5 22 * * 1-4")   echo "script=place_usdjpy.py" >> $GITHUB_OUTPUT ;;
+              "5 9 * * 2-5")    echo "script=end_usdjpy.py" >> $GITHUB_OUTPUT ;;
+              "30 10 * * 2-6")  echo "script=reconcile.py" >> $GITHUB_OUTPUT ;;
+              *)                echo "script=manage_nyjudas.py" >> $GITHUB_OUTPUT ;;
+            esac
+          fi
+      - name: Run
+        env:
+          ETORO_PUBLIC_KEY: ${{ secrets.ETORO_PUBLIC_KEY }}
+          ETORO_USER_KEY: ${{ secrets.ETORO_USER_KEY }}
+          ETORO_MODE: demo
+          BROKER: etoro
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          ACCOUNT_SIZE: '10000'
+          RISK_PCT: '1.0'
+          RISK_MODE: each
+          SKIP_SUNDAY: '1'
+        run: python ${{ steps.j.outputs.script }} --dry-run || python ${{ steps.j.outputs.script }}
+      - name: Persist state
+        run: |
+          git config user.name "session-lab-bot"
+          git config user.email "bot@session-lab"
+          git add results/live/*.json results/live/*.csv || echo "no state"
+          git commit -m "live state $(date -u +%F_%H:%M)" || echo "nothing to commit"
+          git push

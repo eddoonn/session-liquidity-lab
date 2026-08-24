@@ -34,7 +34,8 @@ def main():
     buy_trig = lo - BUF * atr           # fade the downside sweep
     stop_d = MULT * atr
     tp_d = TP * stop_d
-    risk_usd = float(L.os.environ.get("RISK_USD", "100"))
+    account = float(L.os.environ.get("ACCOUNT_SIZE", "10000"))
+    risk_usd = account * float(L.os.environ.get("RISK_PCT", "1.0")) / 100.0
 
     units = round(risk_usd / stop_d, 4)
     state = {"book": BOOK, "day": now.strftime("%Y-%m-%d"), "atr": atr,
