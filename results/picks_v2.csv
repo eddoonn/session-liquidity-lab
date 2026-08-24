@@ -1,0 +1,5 @@
+inst,spec,oos_r,oos_n,oos_pf,oos_wr,oos_dd,cons_r,cost2_r
+GOLD,C_ny_rev|ref07-13o0|act13-17|rev|b0.25|a10|m1.0|tp1.0|x19,55.04,135,2.45,71.11,3.81,7.02,52.76
+EURUSD,C_ny_rev|ref07-13o0|act13-17|rev|b0.5|a10|m1.0|tp1.0|x17,23.5,112,1.66,66.07,4.33,-18.6,4.71
+GBPUSD,F_ny_trend_cont|ref07-13o0|act14-17|con_cb|b0.0|a10|m1.5|tp1.5|x20,22.8,107,1.76,59.81,3.66,26.41,10.8
+USDJPY,A_asia_ny_rev|ref19-21o1|act22-10|rev|b1.0|a10|m1.0|tp0.75|x08,19.89,125,1.57,75.2,3.75,-5.22,-0.4

@@ -1,0 +1,5 @@
+inst,spec,ytd_r,ytd_trades,ytd_pf,ytd_wr
+GOLD,D_asia_breakout|ref00-04o0|act03-08|con|b0.25|a10|m1.0|tp2.0|x10,169.19,136,8.07,79.41
+EURUSD,D_asia_breakout|ref00-04o0|act03-08|con|b0.25|a10|m1.0|tp2.0|x10,188.9,162,6.18,80.25
+GBPUSD,D_asia_breakout|ref00-04o0|act03-08|con|b0.25|a10|m1.5|tp2.0|x10,170.51,162,4.97,76.54
+USDJPY,D_asia_breakout|ref00-04o0|act03-08|con|b0.25|a10|m1.0|tp2.0|x08,129.95,150,3.96,73.33

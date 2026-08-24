@@ -1,0 +1,19 @@
+GOLD: bars=13763 dup=0 zerorange=2
+  holes>3h weekdays(full): 30, longest 3 days 08:00:00
+  holes>3h weekdays(2026): 5
+  daily moves >5xATR20: 0
+
+EURUSD: bars=17265 dup=0 zerorange=128
+  holes>3h weekdays(full): 72, longest 2 days 20:00:00
+  holes>3h weekdays(2026): 15
+  daily moves >5xATR20: 0
+
+GBPUSD: bars=17266 dup=0 zerorange=140
+  holes>3h weekdays(full): 72, longest 2 days 20:00:00
+  holes>3h weekdays(2026): 16
+  daily moves >5xATR20: 0
+
+USDJPY: bars=17153 dup=0 zerorange=42
+  holes>3h weekdays(full): 70, longest 2 days 22:00:00
+  holes>3h weekdays(2026): 13
+  daily moves >5xATR20: 0

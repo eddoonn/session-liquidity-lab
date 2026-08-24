@@ -1,0 +1,2 @@
+ref_win,ref_off,act_win,mode,trigger,confirm,buf,atr_len,mult,tp,exit_hour,max_hold,weekdays,be_trigger,atr_pct,ref_ratio
+"(6, 13)",0,"(13, 17)",rev,sweep,False,0.25,10,0.75,1.0,18,36,"[0, 1, 2, 3]",0.6,,
