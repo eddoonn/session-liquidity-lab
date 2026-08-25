@@ -1,0 +1,4 @@
+position_id,instrument,is_buy,open_rate,close_rate,open_date,close_date,profit_usd
+3586898522,,False,159.223,159.356,,,-96.41
+3586777346,,True,4671.47,4671.25,,,-0.05
+3586044990,,True,4645.8,4649.45,,,0.79

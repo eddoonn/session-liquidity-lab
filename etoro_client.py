@@ -38,12 +38,18 @@ class EtoroClient:
     def place_mit(self, instrument, transaction, trigger, sl, tp, units, leverage=1):
         payload = {"action": "open", "transaction": transaction,
                    "symbol": instrument.get("internalSymbolFull"),
-                   "instrumentId": instrument["instrumentId"],
-                   "orderType": "mit", "triggerRate": round(float(trigger), 2),
+                   "orderType": "mit",
+                   "triggerRate": round(float(trigger), 5),
                    "leverage": leverage, "units": round(float(units), 4),
                    "orderCurrency": "usd",
-                   "stopLossRate": round(float(sl), 2),
-                   "takeProfitRate": round(float(tp), 2)}
+                   "stopLossRate": round(float(sl), 5),
+                   "takeProfitRate": round(float(tp), 5)}
+        path = f"{BASE}/api/v2/trading/execution/{self._seg()}/orders"
+        h = {**self.headers, "x-request-id": self._rid()}
+        r = requests.post(path, headers=h, json=payload, timeout=20)
+        if r.status_code >= 400:
+            raise RuntimeError(f"eToro place order -> {r.status_code}: {r.text}")
+        return r.json()
         path = f"{BASE}/api/v2/trading/execution/{self._seg()}/orders"
         h = {**self.headers, "x-request-id": self._rid()}
         r = requests.post(path, headers=h, json=payload, timeout=20)

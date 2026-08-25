@@ -2,6 +2,7 @@
 Ref: prior calendar day 19-22 UTC high/low. Sell MIT @ H+1.25*ATR10 (SL 1*ATR, TP 0.75R),
 Buy MIT @ L-1.25*ATR. Flat next morning 06:00 UTC bar close via end_usdjpy.py."""
 import argparse
+import os
 
 import pandas as pd
 

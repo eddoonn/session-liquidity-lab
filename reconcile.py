@@ -23,7 +23,12 @@ def main():
     from etoro_client import EtoroClient
     cli = EtoroClient()
     hist = cli.history(min_date=args.min_date)
-    trades = (hist.get("trades") or hist.get("TradingProxies") or [])
+    if isinstance(hist, dict):
+        trades = (hist.get("trades") or hist.get("TradingProxies") or [])
+    elif isinstance(hist, list):
+        trades = hist
+    else:
+        trades = []
     rows = []
     for t in trades:
         rows.append({

@@ -32,9 +32,15 @@ def main():
     args = ap.parse_args()
     L.load_env()
 
-    st = L.load_session(BOOK)
+    st = None
+    for back in range(0, 3):   # today + last 2 days (overnight sessions)
+        day = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=back)).strftime("%Y-%m-%d")
+        cand = L.load_session(BOOK, day=day)
+        if cand and cand.get("status") != "closed":
+            st = cand
+            break
     if not st:
-        print("no session on file — nothing to do")
+        print("no open session on file — nothing to do")
         return
     if st.get("status") == "closed":
         print("session already closed — idempotent skip")
