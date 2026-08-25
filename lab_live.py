@@ -94,3 +94,43 @@ def notify(title, description="", color=0x2F6FDE, fields=None):
         post_json(payload)
     except Exception as e:  # never crash a trading job on notifications
         print(f"(discord notify failed: {e})")
+
+
+def order_outcome(cli, o, risk_usd):
+    """Resolve one session order into a human-readable outcome via eToro records."""
+    oid = o.get("order_id")
+    try:
+        info = cli.lookup(oid, reference_id=o.get("reference_id"))
+        if isinstance(info, list) and info:
+            info = info[0]
+    except Exception:
+        info = {}
+    status = str(info.get("status", "")).lower()
+    pid = (info.get("positionID") or info.get("positionId")
+           or (info.get("position") or {}).get("positionID"))
+    side = o["transaction"]
+    out = {"side": side, "order_id": oid}
+    if status in ("pending", "waiting", "ordered"):
+        out["state"] = "still resting"
+        return out
+    try:
+        hist = cli.history(min_date="2026-08-01")
+    except Exception:
+        hist = []
+    rec = None
+    for t in (hist if isinstance(hist, list) else []):
+        if str(t.get("orderId")) == str(oid) or (pid and str(t.get("positionId")) == str(pid)):
+            rec = t
+            break
+    if rec is None:
+        out["state"] = "not filled (cancelled/expired)"
+        return out
+    entry, exitp = float(rec.get("openRate", 0)), float(rec.get("closeRate", 0))
+    pnl = float(rec.get("netProfit", 0))
+    short = side == "sellShort"
+    sl_d = abs(float(o["sl"]) - entry)
+    r = ((entry - exitp) if short else (exitp - entry)) / max(sl_d, 1e-9)
+    reason = "SL" if ((exitp >= float(o["sl"]) - 1e-9) if short else (exitp <= float(o["sl"]) + 1e-9)) \
+        else ("TP" if ((exitp <= float(o["tp"]) + 1e-9) if short else (exitp >= float(o["tp"]) - 1e-9)) else "time/manual")
+    return {"side": side, "state": f"{reason} · {entry:.5g} -> {exitp:.5g}",
+            "r": round(r, 2), "pnl": round(pnl, 2)}

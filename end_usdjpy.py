@@ -70,13 +70,24 @@ def main():
         else:
             o["done"] = True
     st["status"] = "closed"
-    L.save_session(st, BOOK)
+    L.save_session(st, BOOK, day=st.get("day"))
     for a in actions:
         print(a)
     if args.dry_run:
         print("DRY RUN — no live actions")
-    elif actions:
-        L.notify("USDJPY session closed", "\n".join(actions), color=0xF39C12)
+        return
+    # always post the session RESULT (even when nothing was left to manage)
+    outcomes = [L.order_outcome(cli, o, 100.0) for o in st["orders"]]
+    net = sum(o.get("pnl", 0.0) for o in outcomes if "pnl" in o)
+    fields = []
+    for o in outcomes:
+        val = o["state"] + (f" · {o['r']:+.2f}R · {o['pnl']:+.2f} USD" if "r" in o else "")
+        fields.append({"name": o["side"] + f" ({o.get('order_id')})", "value": val,
+                       "inline": False})
+    L.notify(f"USDJPY session result — {st.get('day', '')}",
+             f"net {net:+.2f} USD",
+             color=0x2ECC71 if net > 0 else (0xE74C3C if net < 0 else 0x95A5A6),
+             fields=fields)
 
 
 if __name__ == "__main__":

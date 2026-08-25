@@ -12,7 +12,8 @@
       "tp": 159.1108085632324,
       "units": 115515.57,
       "order_id": 376445408,
-      "reference_id": "c5b08c1a-2dfa-49af-92b4-76802f06b277"
+      "reference_id": "c5b08c1a-2dfa-49af-92b4-76802f06b277",
+      "done": true
     },
     {
       "transaction": "buy",
@@ -21,8 +22,9 @@
       "tp": 158.7931983947754,
       "units": 115515.57,
       "order_id": 376445409,
-      "reference_id": "2fa6ea25-195f-45cb-891c-dd281f2e5cc1"
+      "reference_id": "2fa6ea25-195f-45cb-891c-dd281f2e5cc1",
+      "done": true
     }
   ],
-  "status": "placed"
+  "status": "closed"
 }
