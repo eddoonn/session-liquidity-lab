@@ -96,41 +96,50 @@ def notify(title, description="", color=0x2F6FDE, fields=None):
         print(f"(discord notify failed: {e})")
 
 
-def order_outcome(cli, o, risk_usd):
-    """Resolve one session order into a human-readable outcome via eToro records."""
-    oid = o.get("order_id")
+def fetch_history(cli, min_date="2026-08-01"):
     try:
-        info = cli.lookup(oid, reference_id=o.get("reference_id"))
-        if isinstance(info, list) and info:
-            info = info[0]
+        h = cli.history(min_date=min_date)
     except Exception:
-        info = {}
-    status = str(info.get("status", "")).lower()
-    pid = (info.get("positionID") or info.get("positionId")
-           or (info.get("position") or {}).get("positionID"))
+        return []
+    if isinstance(h, dict):
+        return h.get("trades") or h.get("TradingProxies") or []
+    return h if isinstance(h, list) else []
+
+
+def order_outcome(o, hist, t_from=None):
+    """Resolve one session order against eToro closed-trade records.
+    Matching is by side + open-rate proximity (+ optional time floor), because
+    eToro assigns closing records a DIFFERENT orderId than the resting order."""
     side = o["transaction"]
-    out = {"side": side, "order_id": oid}
-    if status in ("pending", "waiting", "ordered"):
-        out["state"] = "still resting"
-        return out
-    try:
-        hist = cli.history(min_date="2026-08-01")
-    except Exception:
-        hist = []
-    rec = None
-    for t in (hist if isinstance(hist, list) else []):
-        if str(t.get("orderId")) == str(oid) or (pid and str(t.get("positionId")) == str(pid)):
-            rec = t
-            break
-    if rec is None:
+    out = {"side": side, "order_id": o.get("order_id")}
+    short = side == "sellShort"
+    trig = float(o["trigger"])
+    tol = abs(float(o["sl"]) - trig) * 3 + 1e-9
+    best = None
+    for t in hist:
+        isb = t.get("isBuy")
+        buy = isb in (True, "true", "True", 1, "1")
+        if buy == short:
+            continue
+        if t_from and str(t.get("openTimestamp", ""))[:13] < str(t_from)[:13]:
+            continue
+        try:
+            d = abs(float(t.get("openRate", 0)) - trig)
+        except (TypeError, ValueError):
+            continue
+        if d <= tol and (best is None or d < best[0]):
+            best = (d, t)
+    if best is None:
         out["state"] = "not filled (cancelled/expired)"
         return out
+    rec = best[1]
     entry, exitp = float(rec.get("openRate", 0)), float(rec.get("closeRate", 0))
     pnl = float(rec.get("netProfit", 0))
-    short = side == "sellShort"
-    sl_d = abs(float(o["sl"]) - entry)
-    r = ((entry - exitp) if short else (exitp - entry)) / max(sl_d, 1e-9)
-    reason = "SL" if ((exitp >= float(o["sl"]) - 1e-9) if short else (exitp <= float(o["sl"]) + 1e-9)) \
-        else ("TP" if ((exitp <= float(o["tp"]) + 1e-9) if short else (exitp >= float(o["tp"]) - 1e-9)) else "time/manual")
-    return {"side": side, "state": f"{reason} · {entry:.5g} -> {exitp:.5g}",
-            "r": round(r, 2), "pnl": round(pnl, 2)}
+    r = ((entry - exitp) if short else (exitp - entry)) / max(abs(float(o["sl"]) - trig), 1e-9)
+    below = exitp >= float(o["sl"]) - 1e-9 if short else exitp <= float(o["sl"]) + 1e-9
+    above = exitp <= float(o["tp"]) + 1e-9 if short else exitp >= float(o["tp"]) - 1e-9
+    reason = "SL" if below else ("TP" if above else "time/manual")
+    out.update({"state": f"{reason} · {entry:.5g} -> {exitp:.5g}", "r": round(r, 2),
+                "pnl": round(pnl, 2),
+                "close_ts": str(rec.get("closeTimestamp", ""))[:16]})
+    return out

@@ -29,8 +29,35 @@ def order_state(cli, o):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--report-day", default=None,
+                    help="force a result embed for an already-closed session")
     args = ap.parse_args()
     L.load_env()
+
+    if args.report_day:
+        st = L.load_session(BOOK, day=args.report_day)
+        if not st:
+            raise SystemExit(f"no session file for {args.report_day}")
+        from etoro_client import EtoroClient
+        cli = EtoroClient()
+        hist = L.fetch_history(cli)
+        t_from = args.report_day
+        outcomes = [L.order_outcome(o, hist, t_from=t_from) for o in st["orders"]]
+        filled = [o for o in outcomes if "r" in o]
+        net = sum(o.get("pnl", 0.0) for o in outcomes)
+        fields = [{"name": f"{o['side']} · {o['state']}",
+                   "value": f"**{o['r']:+.2f}R** · {o['pnl']:+.2f} USD"
+                            + (f" · closed {o.get('close_ts', '')}Z" if o.get("close_ts") else ""),
+                   "inline": False} for o in filled]
+        nf = [o["side"] for o in outcomes if "r" not in o]
+        if nf:
+            fields.append({"name": "not filled", "value": ", ".join(nf), "inline": False})
+        L.notify(f"USDJPY session result — {t_from} (re-report)",
+                 f"net {net:+.2f} USD across {len(filled)} filled / "
+                 f"{len(outcomes) - len(filled)} unfilled legs",
+                 color=0x2ECC71 if net > 0 else (0xE74C3C if net < 0 else 0x95A5A6),
+                 fields=fields)
+        return
 
     st = None
     for back in range(0, 3):   # today + last 2 days (overnight sessions)
@@ -77,15 +104,23 @@ def main():
         print("DRY RUN — no live actions")
         return
     # always post the session RESULT (even when nothing was left to manage)
-    outcomes = [L.order_outcome(cli, o, 100.0) for o in st["orders"]]
-    net = sum(o.get("pnl", 0.0) for o in outcomes if "pnl" in o)
+    hist = L.fetch_history(cli)
+    t_from = st.get("day", "2000-01-01")
+    outcomes = [L.order_outcome(o, hist, t_from=t_from) for o in st["orders"]]
+    filled = [o for o in outcomes if "r" in o]
+    net = sum(o.get("pnl", 0.0) for o in outcomes)
     fields = []
-    for o in outcomes:
-        val = o["state"] + (f" · {o['r']:+.2f}R · {o['pnl']:+.2f} USD" if "r" in o else "")
-        fields.append({"name": o["side"] + f" ({o.get('order_id')})", "value": val,
-                       "inline": False})
-    L.notify(f"USDJPY session result — {st.get('day', '')}",
-             f"net {net:+.2f} USD",
+    for o in filled:
+        fields.append({"name": f"{o['side']} · {o['state']}",
+                       "value": f"**{o['r']:+.2f}R** · {o['pnl']:+.2f} USD"
+                                + (f" · closed {o.get('close_ts', '')}Z"
+                                   if o.get("close_ts") else ""), "inline": False})
+    nf = [o["side"] + f" ({o.get('order_id')})" for o in outcomes if "r" not in o]
+    if nf:
+        fields.append({"name": "not filled", "value": ", ".join(nf), "inline": False})
+    L.notify(f"USDJPY session result — {t_from}",
+             f"net {net:+.2f} USD across {len(filled)} filled / "
+             f"{len(outcomes) - len(filled)} unfilled legs",
              color=0x2ECC71 if net > 0 else (0xE74C3C if net < 0 else 0x95A5A6),
              fields=fields)
 

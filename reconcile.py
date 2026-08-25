@@ -52,6 +52,23 @@ def main():
             combined = new_df
         combined.to_csv(out_path, index=False)
         print(f"reconciled {len(rows)} records -> {out_path} ({len(combined)} total)")
+
+        # ---- daily closed-P&L notification ----
+        cutoff = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+        recent = [r for r in rows if str(r.get("close_date", ""))[:10] >= cutoff]
+        if recent:
+            net = sum(float(r.get("profit_usd") or 0) for r in recent)
+            fields = [{"name": f"{r.get('instrument', '?')} "
+                               f"{'LONG' if str(r.get('is_buy')) in ('True', 'true', '1') else 'SHORT'}",
+                       "value": f"{r.get('open_rate')} -> {r.get('close_rate')} · "
+                                f"**{float(r.get('profit_usd') or 0):+.2f} USD** · "
+                                f"closed {str(r.get('close_date'))[:16]}Z",
+                       "inline": False}
+                      for r in sorted(recent, key=lambda x: float(x.get("profit_usd") or 0))]
+            L.notify(f"Closed-trades P&L — last 48h ({len(recent)} trades)",
+                     f"net {net:+.2f} USD",
+                     color=0x2ECC71 if net > 0 else (0xE74C3C if net < 0 else 0x95A5A6),
+                     fields=fields[:20])
     else:
         print(f"no closed trades since {args.min_date}")
 
